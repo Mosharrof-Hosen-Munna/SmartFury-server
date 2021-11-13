@@ -32,8 +32,15 @@ const run = async () => {
     // Get Api
 
     // find all products
-    app.get("/api/products/all", async (req, res) => {
-      const cursor = productsCollection.find({});
+    app.get("/api/products", async (req, res) => {
+      const filter = req.query.filter;
+      const query = { category: filter };
+      let cursor;
+      if (filter) {
+        cursor = productsCollection.find(query);
+      } else {
+        cursor = productsCollection.find({});
+      }
       const result = await cursor.toArray();
       res.send(result.reverse());
     });
@@ -45,12 +52,27 @@ const run = async () => {
       const result = await productsCollection.findOne(query);
       res.send(result);
     });
+    app.get("/api/products/limit/:total", async (req, res) => {
+      const total = req.params.total;
+      const cursor = productsCollection.find({});
+      const result = await cursor.limit(parseInt(total)).toArray();
+      res.send(result.reverse());
+    });
     //   find products by uid for specific admin
     app.get("/api/products/:uid", async (req, res) => {
       const uid = req.params.uid;
       const query = { uid };
       const cursor = productsCollection.find(query);
       const result = await cursor.toArray();
+      res.send(result.reverse());
+    });
+
+    app.get("/products/related", async (req, res) => {
+      const category = req.query.category;
+      console.log(category);
+      const query = { category: category };
+      const cursor = productsCollection.find(query);
+      const result = await cursor.limit(4).toArray();
       res.send(result.reverse());
     });
 
@@ -99,8 +121,8 @@ const run = async () => {
     });
     //   create an order
     app.post("/api/orders/createOrder", async (req, res) => {
-      const orderData = req.body;
-      const createdOrder = await ordersCollection.insertOne(orderData);
+      const orderedData = req.body;
+      const createdOrder = await ordersCollection.insertOne(orderedData);
       res.json(createdOrder);
     });
 
@@ -127,7 +149,7 @@ const run = async () => {
       const options = { upsert: true };
       const updateDoc = {
         $set: {
-          status: status,
+          orderStatus: status,
         },
       };
       const result = await ordersCollection.updateOne(
@@ -137,6 +159,40 @@ const run = async () => {
       );
       res.json(result);
     });
+
+    // create an user google user
+    app.put("/api/users/createUser", async (req, res) => {
+      const user = req.body;
+      const filter = { email: user.email };
+      const options = { upsert: true };
+      const updateDoc = { $set: user };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.json(result);
+    });
+
+    // update a user address
+    app.put("/api/user/newAddress/:uid", async (req, res) => {
+      const uid = req.params.uid;
+      const address = req.body;
+      const filter = { uid: uid };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          address: address,
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.json(result);
+    });
+
     //   make an admin by email
     app.put("/api/admin/new/:email", async (req, res) => {
       const { email } = req.params;
@@ -147,12 +203,19 @@ const run = async () => {
           role: "admin",
         },
       };
-      const result = await usersCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-      res.json(result);
+
+      const existsUser = await usersCollection.findOne(filter);
+
+      if (existsUser) {
+        const result = await usersCollection.updateOne(
+          filter,
+          updateDoc,
+          options
+        );
+        res.json(result);
+      } else {
+        res.json("User not found at this email");
+      }
     });
 
     //   DELETE API
