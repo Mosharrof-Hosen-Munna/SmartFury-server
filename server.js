@@ -228,6 +228,13 @@ const run = async () => {
       res.json(result);
     });
 
+    app.delete("/api/product/delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const deletedProduct = await productsCollection.deleteOne(query);
+      res.json(deletedProduct);
+    });
+
     console.log("database connected");
   } finally {
     // await client.close()
