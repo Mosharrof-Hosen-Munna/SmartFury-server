@@ -55,8 +55,8 @@ const run = async () => {
     app.get("/api/products/limit/:total", async (req, res) => {
       const total = req.params.total;
       const cursor = productsCollection.find({});
-      const result = await cursor.reverse().limit(parseInt(total)).toArray();
-      res.send(result);
+      const result = await cursor.limit(parseInt(total)).toArray();
+      res.send(result.reverse());
     });
     //   find products by uid for specific admin
     app.get("/api/products/:uid", async (req, res) => {
